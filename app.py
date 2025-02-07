@@ -92,4 +92,6 @@ def update_graphs(start_date, end_date):
 
 # Ejecutar localmente
 if __name__ == "__main__":
-    app.run_server()
+    from waitress import serve
+
+    serve(app.server, host="0.0.0.0", port=5000)
