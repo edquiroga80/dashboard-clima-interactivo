@@ -281,7 +281,7 @@ tenacity==8.4.2
 tensorboard==2.16.2
 tensorboard-data-server==0.7.2
 tensorflow==2.16.2
-tensorflow-intel==2.16.2
+tensorflow==2.16.2
 termcolor==2.4.0
 terminado==0.18.1
 textblob==0.18.0.post0
