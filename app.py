@@ -16,7 +16,7 @@ params = {
 
 try:
     response = requests.get(url, params=params)
-    response.raise_for_status()  # ⚠️ Esto maneja errores HTTP
+    response.raise_for_status()  # ⚠️ Manejo de errores HTTP
     data = response.json()
 
     # Convertir los datos en un DataFrame
