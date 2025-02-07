@@ -1,12 +1,11 @@
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc, html  # ⚠️ Se corrigieron importaciones
 from dash.dependencies import Input, Output
 import plotly.express as px
 import requests
 import pandas as pd
 
-# Obtener datos de la API de Open-Meteo
+# 🔹 Obtener datos de la API de Open-Meteo con manejo de errores
 url = "https://api.open-meteo.com/v1/forecast"
 params = {
     "latitude": -34.61,  # Buenos Aires
@@ -15,20 +14,26 @@ params = {
     "timezone": "America/Argentina/Buenos_Aires",
 }
 
-response = requests.get(url, params=params)
-data = response.json()
+try:
+    response = requests.get(url, params=params)
+    response.raise_for_status()  # ⚠️ Esto maneja errores HTTP
+    data = response.json()
 
-# Convertir los datos en un DataFrame
-df = pd.DataFrame(
-    {
-        "Fecha": pd.to_datetime(data["hourly"]["time"]),
-        "Temperatura (°C)": data["hourly"]["temperature_2m"],
-        "Humedad (%)": data["hourly"]["relative_humidity_2m"],
-    }
-)
+    # Convertir los datos en un DataFrame
+    df = pd.DataFrame(
+        {
+            "Fecha": pd.to_datetime(data["hourly"]["time"]),
+            "Temperatura (°C)": data["hourly"]["temperature_2m"],
+            "Humedad (%)": data["hourly"]["relative_humidity_2m"],
+        }
+    )
+except requests.exceptions.RequestException as e:
+    print(f"⚠️ Error al obtener datos de Open-Meteo: {e}")
+    df = pd.DataFrame(columns=["Fecha", "Temperatura (°C)", "Humedad (%)"])
 
-# Inicializar la aplicación Dash con estilo moderno
+# 🔹 Inicializar la aplicación Dash
 app = dash.Dash(__name__)
+server = app.server  # ⚠️ Render necesita esto para ejecutarlo con Gunicorn
 
 app.layout = html.Div(
     style={"backgroundColor": "#1E1E1E", "color": "white", "padding": "20px"},
@@ -37,8 +42,8 @@ app.layout = html.Div(
         # Selector de fechas
         dcc.DatePickerRange(
             id="date-picker",
-            start_date=df["Fecha"].min(),
-            end_date=df["Fecha"].max(),
+            start_date=df["Fecha"].min() if not df.empty else None,
+            end_date=df["Fecha"].max() if not df.empty else None,
             display_format="YYYY-MM-DD",
             style={"backgroundColor": "#333", "color": "white", "padding": "10px"},
         ),
@@ -68,15 +73,14 @@ app.layout = html.Div(
             ],
             style={"display": "flex", "justify-content": "center", "padding": "20px"},
         ),
-        # Gráfico de líneas para temperatura y humedad
+        # Gráficos interactivos
         dcc.Graph(id="clima-graph"),
-        # Gráfico de dispersión temperatura vs humedad
         dcc.Graph(id="scatter-graph"),
     ],
 )
 
 
-# Callback para actualizar los gráficos según la fecha seleccionada
+# 🔹 Callback para actualizar los gráficos según la fecha seleccionada
 @app.callback(
     [
         Output("clima-graph", "figure"),
@@ -87,20 +91,21 @@ app.layout = html.Div(
     [Input("date-picker", "start_date"), Input("date-picker", "end_date")],
 )
 def update_graphs(start_date, end_date):
+    if df.empty or start_date is None or end_date is None:
+        empty_fig = px.scatter(title="No hay datos disponibles", template="plotly_dark")
+        return empty_fig, empty_fig, "N/A", "N/A"
+
     # Filtrar datos por rango de fechas
     df_filtered = df[(df["Fecha"] >= start_date) & (df["Fecha"] <= end_date)]
 
-    # Verificar si hay datos filtrados
+    # Si no hay datos en el rango, devolver gráficos vacíos
     if df_filtered.empty:
-        # Gráfico vacío en caso de no haber datos
         empty_fig = px.scatter(
-            title="No hay datos disponibles en este rango de fechas",
-            template="plotly_dark",
+            title="No hay datos en este rango", template="plotly_dark"
         )
-
         return empty_fig, empty_fig, "N/A", "N/A"
 
-    # Gráfico de líneas
+    # Gráfico de líneas de temperatura y humedad
     fig1 = px.line(
         df_filtered,
         x="Fecha",
@@ -109,7 +114,7 @@ def update_graphs(start_date, end_date):
         template="plotly_dark",
     )
 
-    # Gráfico de dispersión temperatura vs humedad sin trendline
+    # Gráfico de dispersión temperatura vs humedad
     fig2 = px.scatter(
         df_filtered,
         x="Temperatura (°C)",
@@ -118,12 +123,13 @@ def update_graphs(start_date, end_date):
         template="plotly_dark",
     )
 
-    # Cálculo de temperatura máxima y mínima
+    # Calcular temperatura máxima y mínima
     temp_max = f"{df_filtered['Temperatura (°C)'].max():.1f} °C"
     temp_min = f"{df_filtered['Temperatura (°C)'].min():.1f} °C"
 
     return fig1, fig2, temp_max, temp_min
 
 
+# 🔹 Ejecutar la aplicación localmente
 if __name__ == "__main__":
     app.run_server(debug=True)
