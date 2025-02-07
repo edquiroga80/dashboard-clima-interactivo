@@ -8,3 +8,4 @@ matplotlib==3.9.0
 geopandas==1.0.1
 folium==0.16.0
 streamlit==1.36.0
+dash==2.16.1  # (o la versión más reciente)
