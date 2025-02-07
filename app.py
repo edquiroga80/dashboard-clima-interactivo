@@ -1,11 +1,11 @@
 import dash
-from dash import dcc, html  # ⚠️ Se corrigieron importaciones
+from dash import dcc, html  # Se actualizó importación (Dash >=2.0)
 from dash.dependencies import Input, Output
 import plotly.express as px
 import requests
 import pandas as pd
 
-# 🔹 Obtener datos de la API de Open-Meteo con manejo de errores
+# 🔹 Obtener datos de Open-Meteo con manejo de errores
 url = "https://api.open-meteo.com/v1/forecast"
 params = {
     "latitude": -34.61,  # Buenos Aires
